@@ -4,7 +4,7 @@
     "parameters": {
         "vWANname": {
             "type": "string",
-            "defaultValue": "CharisTechVirtualWAN",
+            "defaultValue": "charistechvwan",
             "metadata": {
                 "description": "Azure Virtual WAN Name"
             }
@@ -68,51 +68,62 @@
             "metadata": {
                 "description": "Password for the Virtual Machine"
             }
-        },
-        "IpsecSharedKey": {
-            "type": "secureString",
-            "defaultValue": "vpnPass123",
-            "metadata": {
-                "description": "SharedKey for the IPSEC connection"
-            }
         }
     },
     "variables": {
         "vwan_cfg": {
+            "name": "charistechvwan",
             "type": "Standard"
         },
+        "vwan_vpn_site_cfg": {
+            "name": "on-premises-site",
+            "bgp_peer_ip": "",
+            "bgp_peer_asn": 65001
+        },
+        "vwan_vpn_site_link_cfg": {
+            "name": "on-premises-site-link",
+            "bgp_peer_ip": "",
+            "bgp_peer_asn": 65001
+        },
+        "vwan_vpn_connection_cfg": {
+            "name": "on-premises-site-link-connection",
+            "ipsecsharedkey": "vpnPass123",
+            "bgp_peer_asn": 65001
+        },
         "virtual_hub1_cfg": {
-            "name": "CharisTechVirtualWANHub-EastUS",
+            "name": "charistechvwanhub-eastus",
             "addressSpacePrefix": "10.50.0.0/16",
+            "vpngw": "charistech-eusvwanhub-vpngw",
             "Hub1_P2SvpnClientAddressPoolPrefix": "192.168.100.0/24"
         },
         "virtual_hub2_cfg": {
-            "name": "CharisTechVirtualWANHub-WestUS",
+            "name": "charistechvwanhub-westus",
             "addressSpacePrefix": "10.60.0.0/16",
+            "vpngw": "charistech-wusvwanhub-vpngw",
             "Hub2_P2SvpnClientAddressPoolPrefix": "192.168.200.0/24"
         },
         "vnet1_cfg": {
-            "name": "Prod-App-EastUS-01",
+            "name": "Prod-App-eastus-01",
             "addressSpacePrefix": "10.10.0.0/16",
-            "subnetName": "Prod-App-EastUS-Services-Subnet",
+            "subnetName": "Prod-App-eastus-Services-Subnet",
             "subnetPrefix": "10.10.1.0/24"
         },
         "vnet2_cfg": {
-            "name": "Prod-Data-EastUS-01",
+            "name": "Prod-Data-eastus-01",
             "addressSpacePrefix": "10.20.0.0/16",
-            "subnetName": "Prod-App-EastUS-DB-Subnet",
+            "subnetName": "Prod-App-eastus-DB-Subnet",
             "subnetPrefix": "10.20.1.0/24"
         },
         "vnet3_cfg": {
-            "name": "Prod-App-WestUS-01",
+            "name": "Prod-App-westus-01",
             "addressSpacePrefix": "10.30.0.0/16",
-            "subnetName": "Prod-App-WestUS-Services-Subnet",
+            "subnetName": "Prod-App-westus-Services-Subnet",
             "subnetPrefix": "10.30.1.0/24"
         },
         "vnet4_cfg": {
-            "name": "Prod-Data-WestUS-01",
+            "name": "Prod-Data-westus-01",
             "addressSpacePrefix": "10.40.0.0/16",
-            "subnetName": "Prod-App-WestUS-DB-Subnet",
+            "subnetName": "Prod-App-westus-DB-Subnet",
             "subnetPrefix": "10.40.1.0/24"
         },
         "vnet5_cfg": {
@@ -132,7 +143,7 @@
         "remotepc_cfg": {
             "name": "userpc",
             "username": "remoteuser",
-            "subnetName": "Prod-App-WestUS-DB-Subnet",
+            "subnetName": "Prod-App-westus-DB-Subnet",
             "dnslabel": "[toLower(format('{0}-{1}', 'userpc', uniqueString(resourceGroup().id)))]",
             "vmsize": "Standard_B2s",
             "nic": "userpcNic",
@@ -144,7 +155,7 @@
         "onpremvm_cfg": {
             "name": "onpremvm",
             "username": "onpremuser",
-            "subnetName": "Prod-App-WestUS-DB-Subnet",
+            "subnetName": "Prod-App-westus-DB-Subnet",
             "vmsize": "Standard_B2s",
             "nic": "onpremvmNic",
             "osdisktype": "Standard_LRS",
@@ -152,11 +163,17 @@
         },
         "onpremgw_cfg": {
             "name": "onpremgw",
-            "pip": "onpremuser",
+            "pip": "onpremgwpip",
             "dnslabel": "[toLower(format('{0}-{1}', 'onpremgw', uniqueString(resourceGroup().id)))]",
             "nic": "onpremvmNic",
             "osdisktype": "Standard_LRS",
             "osversion": "18.04-LTS"
+        },
+        "onpremgw_localgw_cfg": {
+            "gw0name": "charistech-vwanhub-eus-gw0",
+            "gw1name": "onpremgw",
+            "conn0": "on-prem-TO-vwanhub-gw0",
+            "conn1": "on-prem-TO-vwanhub-gw1"
         },
         "app1vm_cfg": {
             "name": "app1vm",
@@ -661,11 +678,12 @@
         {
             "type": "Microsoft.Network/virtualWans",
             "apiVersion": "2020-05-01",
-            "name": "[parameters('vWANname')]",
+            "name": "[variables('vwan_cfg').name]",
             "location": "[parameters('hub1_location')]",
             "properties": {
                 "allowVnetToVnetTraffic": true,
                 "allowBranchToBranchTraffic": true,
+                "disableVpnEncryption": false,
                 "type": "[variables('vwan_cfg').type]"
             }
         },
@@ -713,12 +731,12 @@
             "name": "[variables('virtual_hub1_cfg').name]",
             "location": "[parameters('hub1_location')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualWans', parameters('vWANname'))]"
+                "[resourceId('Microsoft.Network/virtualWans', variables('vwan_cfg').name)]"
             ],
             "properties": {
                 "addressPrefix": "[variables('virtual_hub1_cfg').addressSpacePrefix]",
                 "virtualWan": {
-                    "id": "[resourceId('Microsoft.Network/virtualWans', parameters('vWANname'))]"
+                    "id": "[resourceId('Microsoft.Network/virtualWans', variables('vwan_cfg').name)]"
                 }
             }
         },
@@ -728,12 +746,12 @@
             "name": "[variables('virtual_hub2_cfg').name]",
             "location": "[parameters('hub2_location')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualWans', parameters('vWANname'))]"
+                "[resourceId('Microsoft.Network/virtualWans', variables('vwan_cfg').name)]"
             ],
             "properties": {
                 "addressPrefix": "[variables('virtual_hub2_cfg').addressSpacePrefix]",
                 "virtualWan": {
-                    "id": "[resourceId('Microsoft.Network/virtualWans', parameters('vWANname'))]"
+                    "id": "[resourceId('Microsoft.Network/virtualWans', variables('vwan_cfg').name)]"
                 }
             }
         },
@@ -949,7 +967,7 @@
         },
         {
             "type": "Microsoft.Network/vpnGateways",
-            "name": "[format('{0}_S2SvpnGW', variables('virtual_hub1_cfg').name)]",
+            "name": "[variables('virtual_hub1_cfg').vpngw]",
             "apiVersion": "2020-05-01",
             "location": "[parameters('hub1_location')]",
             "dependsOn": [
@@ -967,7 +985,7 @@
         },
         {
             "type": "Microsoft.Network/vpnGateways",
-            "name": "[format('{0}_S2SvpnGW', variables('virtual_hub2_cfg').name)]",
+            "name": "[variables('virtual_hub2_cfg').vpngw]",
             "apiVersion": "2020-05-01",
             "location": "[parameters('hub2_location')]",
             "dependsOn": [
@@ -1113,6 +1131,140 @@
                     }
                 ],
                 "vpnGatewayScaleUnit": "[parameters('Hub2_P2SvpnGatewayScaleUnit')]"
+            }
+        },
+        {
+            "type": "Microsoft.Network/vpnGateways/vpnConnections",
+            "apiVersion": "2023-04-01",
+            "name": "string",
+            "properties": {
+                "enableBgp": true,
+                "remoteVpnSite": {
+                    "id": "[resourceId('Microsoft.Network/vpnSites', variables('vwan_vpn_site_cfg').name)]"
+                },
+                "sharedKey": "[variables('vwan_vpn_connection_cfg').ipsecsharedkey]",
+                "usePolicyBasedTrafficSelectors": false,
+                "vpnConnectionProtocolType": "IKEv2"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/vpnSites', variables('vwan_vpn_site_cfg').name)]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/vpnSites",
+            "apiVersion": "2020-05-01",
+            "name": "[variables('vwan_vpn_site_cfg').name]",
+            "location": "[parameters('hub1_location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualWANs', variables('vwan_cfg').name)]",
+                "[resourceId('Microsoft.Network/virtualNetworkGateways', variables('onpremgw_cfg').name)]",
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('onpremgw_cfg').pip)]"
+            ],
+            "properties": {
+                "virtualWan": {
+                    "id": "[resourceId('Microsoft.Network/virtualWANs', variables('vwan_cfg').name)]"
+                },
+                "deviceProperties": {
+                    "deviceVendor": "Microsoft"
+                },
+                "vpnSiteLinks": [
+                    {
+                        "name": "[variables('vwan_vpn_site_link_cfg').name]",
+                        "properties": {
+                            "bgpProperties": {
+                                "asn": "[variables('vwan_vpn_site_link_cfg').bgp_peer_asn]",
+                                "bgpPeeringAddress": "[reference(resourceId('Microsoft.Network/virtualNetworkGateways', variables('onpremgw_cfg').name)).bgpSettings.bgpPeeringAddress]"
+                            },
+                            "fqdn": "[reference(resourceId('Microsoft.Network/publicIPAddresses', variables('onpremgw_cfg').pip)).dnsSettings.fqdn]",
+                            "linkProperties": {
+                                "linkProviderName": "Microsoft",
+                                "linkSpeedInMbps": 650
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "comments": "Local network gateway for the VWAN hub S2S VPN gateway 0 resource",
+            "type": "Microsoft.Network/localNetworkGateways",
+            "apiVersion": "2020-08-01",
+            "name": "[variables('onpremgw_localgw_cfg').gw0name]",
+            "location": "[parameters('hub1_location')]",
+            "properties": {
+                "gatewayIpAddress": "[reference(resourceId('Microsoft.Network/vpnGateways', variables('virtual_hub1_cfg').vpngw)).ipConfigurations[0].publicIpAddress]",
+                "bgpSettings": {
+                    "asn": "[reference(resourceId('Microsoft.Network/vpnGateways', variables('virtual_hub1_cfg').vpngw)).properties.bgpSettings.asn]",
+                    "bgpPeeringAddress": "[reference(resourceId('Microsoft.Network/vpnGateways', variables('virtual_hub1_cfg').vpngw)).ipConfigurations[0].privateIpAddress]",
+                    "peerWeight": 0
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/vpnGateways', variables('virtual_hub1_cfg').vpngw)]"
+            ]
+        },
+        {
+            "comments": "Local network gateway for the VWAN hub S2S VPN gateway 1 resource",
+            "type": "Microsoft.Network/localNetworkGateways",
+            "apiVersion": "2020-08-01",
+            "name": "[variables('onpremgw_localgw_cfg').gw1name]",
+            "location": "[parameters('hub1_location')]",
+            "properties": {
+                "gatewayIpAddress": "[reference(resourceId('Microsoft.Network/vpnGateways', variables('virtual_hub1_cfg').vpngw)).ipConfigurations[1].publicIpAddress]",
+                "bgpSettings": {
+                    "asn": "[reference(resourceId('Microsoft.Network/vpnGateways', variables('virtual_hub1_cfg').vpngw)).properties.bgpSettings.asn]",
+                    "bgpPeeringAddress": "[reference(resourceId('Microsoft.Network/vpnGateways', variables('virtual_hub1_cfg').vpngw)).ipConfigurations[1].privateIpAddress]",
+                    "peerWeight": 0
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/vpnGateways', variables('virtual_hub1_cfg').vpngw)]"
+            ]
+        },
+        {
+            "comments": "VPN connection between the on-premises-site and VWAN hub S2S VPN gateway 0",
+            "type": "Microsoft.Network/connections",
+            "apiVersion": "2020-08-01",
+            "name": "[variables('onpremgw_localgw_cfg').conn0]",
+            "location": "[parameters('hub1_location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/localNetworkGateways', variables('onpremgw_localgw_cfg').gw0name)]",
+                "[resourceId('Microsoft.Network/virtualNetworkGateways', variables('onpremgw_cfg').name)]"
+            ],
+            "properties": {
+                "virtualNetworkGateway1": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworkGateways', variables('onpremgw_cfg').name)]"
+                },
+                "localNetworkGateway2": {
+                    "id": "[resourceId('Microsoft.Network/localNetworkGateways', variables('onpremgw_localgw_cfg').gw0name)]"
+                },
+                "connectionType": "IPsec",
+                "routingWeight": 0,
+                "sharedKey": "[variables('vwan_vpn_connection_cfg').ipsecsharedkey]",
+                "enableBGP": true
+            }
+        },
+        {
+            "comments": "VPN connection between the on-premises-site and VWAN hub S2S VPN gateway 0",
+            "type": "Microsoft.Network/connections",
+            "apiVersion": "2020-08-01",
+            "name": "[variables('onpremgw_localgw_cfg').conn1]",
+            "location": "[parameters('hub1_location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/localNetworkGateways', variables('onpremgw_localgw_cfg').gw1name)]",
+                "[resourceId('Microsoft.Network/virtualNetworkGateways', variables('onpremgw_cfg').name)]"
+            ],
+            "properties": {
+                "virtualNetworkGateway1": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworkGateways', variables('onpremgw_cfg').name)]"
+                },
+                "localNetworkGateway2": {
+                    "id": "[resourceId('Microsoft.Network/localNetworkGateways', variables('onpremgw_localgw_cfg').gw1name)]"
+                },
+                "connectionType": "IPsec",
+                "routingWeight": 0,
+                "sharedKey": "[variables('vwan_vpn_connection_cfg').ipsecsharedkey]",
+                "enableBGP": true
             }
         }
     ]
