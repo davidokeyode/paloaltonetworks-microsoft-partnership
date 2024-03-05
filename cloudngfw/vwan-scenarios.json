@@ -37,20 +37,6 @@
                 "description": "Scale Units for Site-to-Site (S2S) VPN Gateway in the second Hub"
             }
         },
-        "Hub1_ExpressRouteGatewayScaleUnit": {
-            "type": "int",
-            "defaultValue": 1,
-            "metadata": {
-                "description": "Scale Units for Express Route Gateway in the first Hub"
-            }
-        },
-        "Hub2_ExpressRouteGatewayScaleUnit": {
-            "type": "int",
-            "defaultValue": 1,
-            "metadata": {
-                "description": "Scale Units for Express Route Gateway in the second Hub"
-            }
-        },
         "Hub1_P2SvpnGatewayScaleUnit": {
             "type": "int",
             "defaultValue": 1,
@@ -1002,9 +988,6 @@
             "apiVersion": "2020-05-01",
             "name": "[format('{0}_P2SvpnServerConfiguration', variables('virtual_hub1_cfg').name)]",
             "location": "[parameters('hub1_location')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/expressRouteGateways', format('{0}_ERGW', variables('virtual_hub1_cfg').name))]"
-            ],
             "properties": {
                 "vpnProtocols": [
                     "IkeV2",
@@ -1026,9 +1009,6 @@
             "apiVersion": "2020-05-01",
             "name": "[format('{0}_P2SvpnServerConfiguration', variables('virtual_hub2_cfg').name)]",
             "location": "[parameters('hub2_location')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/expressRouteGateways', format('{0}_ERGW', variables('virtual_hub2_cfg').name))]"
-            ],
             "properties": {
                 "vpnProtocols": [
                     "IkeV2",
