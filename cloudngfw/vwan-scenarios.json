@@ -103,34 +103,34 @@
             "Hub2_P2SvpnClientAddressPoolPrefix": "192.168.200.0/24"
         },
         "vnet1_cfg": {
-            "name": "Prod-App-eastus-01",
+            "name": "prod-app-eastus-01",
             "addressSpacePrefix": "10.10.0.0/16",
-            "subnetName": "Prod-App-eastus-Services-Subnet",
+            "subnetName": "prod-app-eastus-services-subnet",
             "subnetPrefix": "10.10.1.0/24"
         },
         "vnet2_cfg": {
-            "name": "Prod-Data-eastus-01",
+            "name": "prod-Data-eastus-01",
             "addressSpacePrefix": "10.20.0.0/16",
-            "subnetName": "Prod-App-eastus-DB-Subnet",
+            "subnetName": "prod-app-eastus-DB-subnet",
             "subnetPrefix": "10.20.1.0/24"
         },
         "vnet3_cfg": {
-            "name": "Prod-App-westus-01",
+            "name": "prod-app-westus-01",
             "addressSpacePrefix": "10.30.0.0/16",
-            "subnetName": "Prod-App-westus-Services-Subnet",
+            "subnetName": "prod-app-westus-services-subnet",
             "subnetPrefix": "10.30.1.0/24"
         },
         "vnet4_cfg": {
-            "name": "Prod-Data-westus-01",
+            "name": "prod-Data-westus-01",
             "addressSpacePrefix": "10.40.0.0/16",
-            "subnetName": "Prod-App-westus-DB-Subnet",
+            "subnetName": "prod-app-westus-DB-subnet",
             "subnetPrefix": "10.40.1.0/24"
         },
         "vnet5_cfg": {
             "name": "onprem-network",
             "addressSpacePrefix": "10.70.0.0/16",
             "subnet1Name": "onprem-subnet-1",
-            "subnet2Name": "GatewaySubnet",
+            "subnet2Name": "Gatewaysubnet",
             "subnet1Prefix": "10.70.1.0/24",
             "subnet2Prefix": "10.70.10.0/24"
         },
@@ -143,7 +143,6 @@
         "remotepc_cfg": {
             "name": "userpc",
             "username": "remoteuser",
-            "subnetName": "Prod-App-westus-DB-Subnet",
             "dnslabel": "[toLower(format('{0}-{1}', 'userpc', uniqueString(resourceGroup().id)))]",
             "vmsize": "Standard_B2s",
             "nic": "userpcNic",
@@ -155,7 +154,6 @@
         "onpremvm_cfg": {
             "name": "onpremvm",
             "username": "onpremuser",
-            "subnetName": "Prod-App-westus-DB-Subnet",
             "vmsize": "Standard_B2s",
             "nic": "onpremvmNic",
             "osdisktype": "Standard_LRS",
